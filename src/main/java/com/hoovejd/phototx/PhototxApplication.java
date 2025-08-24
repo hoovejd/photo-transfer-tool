@@ -1,52 +1,93 @@
 package com.hoovejd.phototx;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.security.GeneralSecurityException;
 import java.util.List;
 
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-
-import com.google.api.gax.core.FixedCredentialsProvider;
-import com.google.auth.Credentials;
-import com.google.auth.oauth2.UserCredentials;
-import com.google.photos.library.v1.PhotosLibraryClient;
-import com.google.photos.library.v1.PhotosLibrarySettings;
-import com.google.photos.library.v1.proto.ListAlbumsRequest;
-import com.google.photos.library.v1.proto.ListAlbumsResponse;
+import com.google.api.client.auth.oauth2.Credential;
+import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
+import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
+import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
+import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.common.collect.ImmutableList;
 
-import lombok.extern.slf4j.Slf4j;
+public class PhototxApplication {
 
-@Slf4j
-@SpringBootApplication
-public class PhototxApplication implements CommandLineRunner {
+	private static final String credentialsPath = "/home/hoovejd/workspace/photo-transfer-tool/my_oauth_creds.json";
 
 	private static final List<String> REQUIRED_SCOPES = ImmutableList.of(
 			"https://www.googleapis.com/auth/photoslibrary.readonly",
 			"https://www.googleapis.com/auth/photoslibrary.appendonly");
 
+	private static final java.io.File DATA_STORE_DIR = new java.io.File(
+			PhototxApplication.class.getResource("/").getPath(), "credentials");
+
+	private static final int LOCAL_RECEIVER_PORT = 61984;
+
 	public static void main(String[] args) {
-		SpringApplication.run(PhototxApplication.class, args);
-	}
 
-	@Override
-	public void run(String... args) throws Exception {
-		log.debug("running!");
+		System.out.println("running");
 
-		Credentials credentials = UserCredentials.newBuilder()
-				.setClientId("xxxx")
-				.setClientSecret("xxxx").build();
+		GoogleClientSecrets clientSecrets;
+		try {
+			clientSecrets = GoogleClientSecrets.load(
+					GsonFactory.getDefaultInstance(), new InputStreamReader(new FileInputStream(credentialsPath)));
 
-		PhotosLibrarySettings settings = PhotosLibrarySettings.newBuilder()
-				.setCredentialsProvider(FixedCredentialsProvider.create(credentials)).build();
+			String clientId = clientSecrets.getDetails().getClientId();
+			String clientSecret = clientSecrets.getDetails().getClientSecret();
+			System.out.println("clientId: " + clientId);
+			System.out.println("clientSecret: " + clientSecret);
 
-		PhotosLibraryClient client = PhotosLibraryClient.initialize(settings);
+			GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
+					GoogleNetHttpTransport.newTrustedTransport(),
+					GsonFactory.getDefaultInstance(),
+					clientSecrets,
+					REQUIRED_SCOPES)
+					.setDataStoreFactory(new FileDataStoreFactory(DATA_STORE_DIR))
+					.setAccessType("offline")
+					.build();
 
-		ListAlbumsRequest request = ListAlbumsRequest.getDefaultInstance();
+			LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(LOCAL_RECEIVER_PORT).build();
 
-		ListAlbumsResponse response = client.listAlbumsCallable().call(request);
+			Credential credential = new AuthorizationCodeInstalledApp(flow, receiver).authorize("hoov85@gmail.com");
 
-		response.getAlbumsList();
+			System.out.println("RefreshToken: " + credential.getRefreshToken());
+
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (GeneralSecurityException e) {
+			e.printStackTrace();
+		}
+
+		// Credentials credentials = UserCredentials.newBuilder()
+		// .setClientId(clientId)
+		// .setClientSecret(clientSecret)
+		// .setRefreshToken(credential.getRefreshToken())
+		// .build();
+
+		// PhotosLibrarySettings settings = PhotosLibrarySettings.newBuilder()
+		// .setCredentialsProvider(FixedCredentialsProvider.create(credentials)).build();
+
+		// try (PhotosLibraryClient client = PhotosLibraryClient.initialize(settings)) {
+
+		// ListAlbumsRequest request = ListAlbumsRequest.getDefaultInstance();
+
+		// ListAlbumsResponse response = client.listAlbumsCallable().call(request);
+
+		// log.debug(response.getAlbumsList().toString());
+
+		// } catch (Exception e) {
+		// log.error(e.getMessage());
+		// }
+
 	}
 
 }
