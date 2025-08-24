@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.security.GeneralSecurityException;
 import java.util.List;
+import java.util.Optional;
 
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
@@ -15,17 +16,23 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
+import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.UserCredentials;
 import com.google.common.collect.ImmutableList;
+import com.google.photos.library.v1.PhotosLibraryClient;
+import com.google.photos.library.v1.PhotosLibrarySettings;
+import com.google.photos.library.v1.proto.ListAlbumsRequest;
+import com.google.photos.library.v1.proto.ListAlbumsResponse;
 
 public class PhototxApplication {
 
 	private static final String credentialsPath = "/home/hoovejd/workspace/photo-transfer-tool/my_oauth_creds.json";
 
 	private static final List<String> REQUIRED_SCOPES = ImmutableList.of(
-			"https://www.googleapis.com/auth/photoslibrary.readonly",
-			"https://www.googleapis.com/auth/photoslibrary.appendonly");
+			"https://www.googleapis.com/auth/photoslibrary.appendonly",
+			"https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata",
+			"https://www.googleapis.com/auth/photoslibrary.edit.appcreateddata");
 
 	private static final java.io.File DATA_STORE_DIR = new java.io.File(
 			PhototxApplication.class.getResource("/").getPath(), "credentials");
@@ -69,29 +76,29 @@ public class PhototxApplication {
 
 			System.out.println("creds: " + credentials.getRequestMetadata().toString());
 
+			PhotosLibrarySettings settings = PhotosLibrarySettings.newBuilder()
+					.setCredentialsProvider(FixedCredentialsProvider.create(credentials)).build();
+
+			PhotosLibraryClient client = PhotosLibraryClient.initialize(settings);
+
+			ListAlbumsRequest request = ListAlbumsRequest.getDefaultInstance();
+
+			ListAlbumsResponse response = client.listAlbumsCallable().call(request);
+
+			if (response.getNextPageToken().isEmpty()) {
+				System.out.println("empty yo");
+			} else {
+				System.out.println("getNextPageToken: " + response.getNextPageToken());
+			}
+
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (GeneralSecurityException e) {
 			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
-
-		// PhotosLibrarySettings settings = PhotosLibrarySettings.newBuilder()
-		// .setCredentialsProvider(FixedCredentialsProvider.create(credentials)).build();
-
-		// try (PhotosLibraryClient client = PhotosLibraryClient.initialize(settings)) {
-
-		// ListAlbumsRequest request = ListAlbumsRequest.getDefaultInstance();
-
-		// ListAlbumsResponse response = client.listAlbumsCallable().call(request);
-
-		// log.debug(response.getAlbumsList().toString());
-
-		// } catch (Exception e) {
-		// log.error(e.getMessage());
-		// }
-
 	}
-
 }
