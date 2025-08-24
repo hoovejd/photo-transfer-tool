@@ -15,6 +15,8 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
+import com.google.auth.Credentials;
+import com.google.auth.oauth2.UserCredentials;
 import com.google.common.collect.ImmutableList;
 
 public class PhototxApplication {
@@ -59,6 +61,14 @@ public class PhototxApplication {
 
 			System.out.println("RefreshToken: " + credential.getRefreshToken());
 
+			Credentials credentials = UserCredentials.newBuilder()
+					.setClientId(clientId)
+					.setClientSecret(clientSecret)
+					.setRefreshToken(credential.getRefreshToken())
+					.build();
+
+			System.out.println("creds: " + credentials.getRequestMetadata().toString());
+
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -66,12 +76,6 @@ public class PhototxApplication {
 		} catch (GeneralSecurityException e) {
 			e.printStackTrace();
 		}
-
-		// Credentials credentials = UserCredentials.newBuilder()
-		// .setClientId(clientId)
-		// .setClientSecret(clientSecret)
-		// .setRefreshToken(credential.getRefreshToken())
-		// .build();
 
 		// PhotosLibrarySettings settings = PhotosLibrarySettings.newBuilder()
 		// .setCredentialsProvider(FixedCredentialsProvider.create(credentials)).build();
