@@ -22,8 +22,11 @@ import com.google.auth.oauth2.UserCredentials;
 import com.google.common.collect.ImmutableList;
 import com.google.photos.library.v1.PhotosLibraryClient;
 import com.google.photos.library.v1.PhotosLibrarySettings;
+import com.google.photos.library.v1.internal.InternalPhotosLibraryClient.ListAlbumsPagedResponse;
+import com.google.photos.library.v1.proto.CreateAlbumRequest;
 import com.google.photos.library.v1.proto.ListAlbumsRequest;
 import com.google.photos.library.v1.proto.ListAlbumsResponse;
+import com.google.photos.types.proto.Album;
 
 public class PhototxApplication {
 
@@ -81,9 +84,9 @@ public class PhototxApplication {
 
 			PhotosLibraryClient client = PhotosLibraryClient.initialize(settings);
 
-			ListAlbumsRequest request = ListAlbumsRequest.getDefaultInstance();
+			Album album1 = client.createAlbum("TestAlbum1");
 
-			ListAlbumsResponse response = client.listAlbumsCallable().call(request);
+			ListAlbumsPagedResponse response = client.listAlbums(true);
 
 			if (response.getNextPageToken().isEmpty()) {
 				System.out.println("empty yo");
